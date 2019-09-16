@@ -64,12 +64,14 @@ const unsigned TX_INTERVAL = 60 * 5;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
-    .nss = 18,
+    .nss = 18, 
     .rxtx = LMIC_UNUSED_PIN,
-    .rst = 14,
-    .dio = {26, 33, 32},
+    .rst = LMIC_UNUSED_PIN,
+    //If DIO2 is not connected use:
+    .dio = {/*dio0*/ 26, /*dio1*/ 33, /*dio2*/ LMIC_UNUSED_PIN} 
+    //If DIO2 is connected use:
+    //.dio = {/*dio0*/ 26, /*dio1*/ 33, /*dio2*/ 32} 
 };
-
 void triggerReadTemp()
 {
     sensors.requestTemperatures();
@@ -239,7 +241,7 @@ void setup()
     // Read at least one reading into the registers and the global variable
     readTemps();
 
-   SPI.begin(5, 19, 27);
+   SPI.begin(5, 19, 27, 18);
 
     // LMIC init
     os_init();
