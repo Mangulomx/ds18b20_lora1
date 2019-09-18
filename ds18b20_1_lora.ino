@@ -42,10 +42,12 @@ void os_getDevKey(u1_t *buf) {}
 #define ONE_WIRE_BUS 13 // GPIO 13
 #define LED_BUILTIN 25
 
+
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 DeviceAddress tempSensor;
 static float tempC;
+int sw = 0;
 
 static uint8_t mydata[16];
 
@@ -81,34 +83,59 @@ void triggerReadTemp()
 void readTemps()
 {
     tempC = sensors.getTempC(tempSensor);
-    Serial.printf("Read Temps = %0.2f\n", tempC);
+    if((tempC > 85.0) || (tempC < -40.00)){ //invalid temperature reading
+    Serial.printf("invalid temp reading = %0.2f\n", tempC);
+    tempC = -127.0;
+    sw = 0;
+    return;
+    }
+    else
+    {
+      sw = 1;
+    }
 
-    char buf[8];
-    sprintf(buf, "=%0.2f", tempC);
+    Serial.printf("Read temps = %0.2fC\n", tempC);
+    #define BUFFMAX 10
+    char buf[BUFFMAX];
+    int  len = snprintf(buf, BUFFMAX, "=%0.2f", tempC);
+    if(len<0){
+      snprintf(buf, BUFFMAX, "ERR CONV");
+       Serial.printf("Conversion Error\n");
+       sw = 0;
+    }
+    else if(len>=BUFFMAX){ //conversion exceeded buffer length
+      snprintf(buf,BUFFMAX,"ERR OF");
+      Serial.printf("temp Won't fit in buffer[%d] =%0.2f\n",BUFFMAX,tempC);
+      sw = 0;   
+    }
+ 
     u8x8.drawString(0, 0, buf);
 }
 
 int encodeTemp(float tempC)
 {
-    char buf[8];
-    sprintf(buf, ">%0.2f", tempC);
-    u8x8.drawString(0, 3, buf);
-    Serial.printf("Send Temp: %0.2f\n", tempC);
-
-    s2_t itemp = (s2_t)(tempC * 100);
-    if (itemp < 0)
+    if(sw)
     {
-        itemp *= -1;
-        itemp |= 0x8000;
-    }
-    int len = sizeof(itemp);
-    for (int i = 0; i < len; i++)
-    {
-        mydata[i] = itemp & 0xff;
-        itemp = itemp >> 8;
-    }
+        char buf[8];
+        sprintf(buf, ">%0.2f", tempC);
+        u8x8.drawString(0, 3, buf);
+        Serial.printf("Send Temp: %0.2f\n", tempC);
 
-    return len;
+        s2_t itemp = (s2_t)(tempC * 100);
+        if (itemp < 0)
+        {
+          itemp *= -1;
+          itemp |= 0x8000;
+        }
+        int len = sizeof(itemp);
+        for (int i = 0; i < len; i++)
+        {
+          mydata[i] = itemp & 0xff;
+          itemp = itemp >> 8;
+        }
+    
+      return len;
+    }
 }
 
 void do_temp_trigger(osjob_t *j)
