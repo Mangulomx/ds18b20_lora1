@@ -79,8 +79,8 @@ void triggerReadTemp()
     sensors.requestTemperatures();
     Serial.println(F("Trigger Temps"));
 }
-
-void readTemps()
+//function to print the temperature for a device
+void readTemps(DeviceAddress tempSensor)
 {
     tempC = sensors.getTempC(tempSensor);
     if((tempC > 85.0) || (tempC < -40.00)){ //invalid temperature reading
@@ -148,7 +148,7 @@ void do_temp_trigger(osjob_t *j)
 
 void do_temp_read(osjob_t *j)
 {
-    readTemps();
+    readTemps(tempSensor);
 
     os_setTimedCallback(&triggerjob, os_getTime() + sec2osticks(28), do_temp_trigger);
 }
@@ -266,7 +266,7 @@ void setup()
     }
 
     // Read at least one reading into the registers and the global variable
-    readTemps();
+    readTemps(tempSensor);
 
    SPI.begin(5, 19, 27, 18);
 
